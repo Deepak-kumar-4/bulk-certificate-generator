@@ -14,12 +14,14 @@ dependencies = [
     "pydantic-settings>=2.4",
     "sqlalchemy>=2.0",
     "email-validator>=2.2",
+    "reportlab>=4.2",
 ]
 
 [project.optional-dependencies]
 dev = [
     "pytest>=8.3",
     "httpx>=0.27",
+    "pypdf>=5.0",
     "ruff>=0.6",
 ]
 
@@ -36,3 +38,6 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[tool.setuptools.package-data]
+app = ["assets/fonts/*"]
