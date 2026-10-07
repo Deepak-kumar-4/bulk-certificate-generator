@@ -26,7 +26,7 @@ def submit_job(payload: JobCreate, response: Response, session: SessionDep) -> J
         id=job.id,
         status=job.status,
         total_count=job.total_count,
-        accepted_count=job.total_count,
-        invalid_count=0,
+        accepted_count=job.total_count - job.failed_count,
+        invalid_count=job.failed_count,
         status_url=url,
     )

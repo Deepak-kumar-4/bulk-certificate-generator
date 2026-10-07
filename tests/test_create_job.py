@@ -97,3 +97,54 @@ def test_rejected_request_saves_nothing(client):
 
     with SessionLocal() as session:
         assert session.scalars(select(Job)).all() == []
+
+
+def get_rows(job_id: str) -> list[Certificate]:
+    with SessionLocal() as session:
+        return session.scalars(
+            select(Certificate).where(Certificate.job_id == job_id).order_by(Certificate.row_index)
+        ).all()
+
+
+def test_bad_rows_are_accepted_and_marked_invalid(client):
+    recipients = [
+        {"name": "Asha Rao", "email": "asha@example.com"},
+        {"name": "", "email": "blank-name@example.com"},
+        {"name": "Bad Email", "email": "not-an-email"},
+        {"name": "Asha Duplicate", "email": "ASHA@example.com"},
+    ]
+
+    response = client.post("/api/jobs/", json=job_body(recipients=recipients))
+
+    assert response.status_code == 202
+    data = response.json()
+    assert (data["total_count"], data["accepted_count"], data["invalid_count"]) == (4, 1, 3)
+
+    rows = get_rows(data["id"])
+    assert rows[0].status != "INVALID"
+    assert [(row.status, row.error) for row in rows[1:]] == [
+        ("INVALID", "name is required"),
+        ("INVALID", "email is not valid"),
+        ("INVALID", "duplicate email in request"),
+    ]
+
+
+def test_all_rows_invalid_still_creates_a_failed_job(client):
+    recipients = [{"name": "", "email": "not-an-email"}, {"name": "Ravi"}]
+
+    response = client.post("/api/jobs/", json=job_body(recipients=recipients))
+
+    assert response.status_code == 202
+    data = response.json()
+    assert data["status"] == "FAILED"
+    assert (data["accepted_count"], data["invalid_count"]) == (0, 2)
+
+    with SessionLocal() as session:
+        job = session.get(Job, data["id"])
+        assert job.status == "FAILED"
+        assert job.failed_count == 2
+        assert job.finished_at is not None
+    assert [row.error for row in get_rows(data["id"])] == [
+        "name is required; email is not valid",
+        "email is required",
+    ]
