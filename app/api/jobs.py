@@ -1,10 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Response, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Response, status
 from sqlalchemy.orm import Session
 
 from app.db import get_session
+from app.models import JobStatus
 from app.schemas import JobCreate, JobCreated
+from app.services import processor
 from app.services.jobs import create_job
 
 router = APIRouter(prefix="/api/jobs", tags=["jobs"])
@@ -17,9 +19,18 @@ def job_url(job_id: str) -> str:
 
 
 @router.post("/", status_code=status.HTTP_202_ACCEPTED, response_model=JobCreated)
-def submit_job(payload: JobCreate, response: Response, session: SessionDep) -> JobCreated:
+def submit_job(
+    payload: JobCreate,
+    response: Response,
+    background_tasks: BackgroundTasks,
+    session: SessionDep,
+) -> JobCreated:
     """Accept a bulk request. Returns immediately; certificates are generated in the background."""
     job = create_job(session, payload)
+    if job.status == JobStatus.PENDING:
+        # The only line that decides *how* the work runs. Swap for a task queue to scale out.
+        background_tasks.add_task(processor.process_job, job.id)
+
     url = job_url(job.id)
     response.headers["Location"] = url
     return JobCreated(

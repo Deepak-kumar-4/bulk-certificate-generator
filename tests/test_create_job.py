@@ -1,21 +1,8 @@
 from sqlalchemy import select
 
 from app.db import SessionLocal
-from app.models import Certificate, Job
-
-
-def job_body(**overrides):
-    body = {
-        "event_name": "Python Bootcamp 2026",
-        "issuer_name": "Deetag Academy",
-        "issue_date": "2026-10-01",
-        "recipients": [
-            {"name": "Asha Rao", "email": "asha@example.com"},
-            {"name": "Ravi Kumar", "email": "ravi@example.com"},
-        ],
-    }
-    body.update(overrides)
-    return body
+from app.models import Job
+from tests.helpers import get_job, get_rows, job_body
 
 
 def test_create_job_returns_202_with_location(client):
@@ -34,17 +21,15 @@ def test_create_job_stores_job_and_one_row_per_recipient(client):
     response = client.post("/api/jobs/", json=job_body())
     job_id = response.json()["id"]
 
-    with SessionLocal() as session:
-        job = session.get(Job, job_id)
-        assert job is not None
-        assert job.event_name == "Python Bootcamp 2026"
-        assert job.issuer_name == "Deetag Academy"
-        assert job.total_count == 2
-        rows = session.scalars(
-            select(Certificate).where(Certificate.job_id == job_id).order_by(Certificate.row_index)
-        ).all()
-        assert [row.row_index for row in rows] == [0, 1]
-        assert [row.recipient_email for row in rows] == ["asha@example.com", "ravi@example.com"]
+    job = get_job(job_id)
+    assert job is not None
+    assert job.event_name == "Python Bootcamp 2026"
+    assert job.issuer_name == "Deetag Academy"
+    assert job.total_count == 2
+
+    rows = get_rows(job_id)
+    assert [row.row_index for row in rows] == [0, 1]
+    assert [row.recipient_email for row in rows] == ["asha@example.com", "ravi@example.com"]
 
 
 def assert_rejected(response, field: str):
@@ -97,13 +82,6 @@ def test_rejected_request_saves_nothing(client):
 
     with SessionLocal() as session:
         assert session.scalars(select(Job)).all() == []
-
-
-def get_rows(job_id: str) -> list[Certificate]:
-    with SessionLocal() as session:
-        return session.scalars(
-            select(Certificate).where(Certificate.job_id == job_id).order_by(Certificate.row_index)
-        ).all()
 
 
 def test_bad_rows_are_accepted_and_marked_invalid(client):
