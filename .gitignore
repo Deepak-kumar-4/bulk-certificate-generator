@@ -1,0 +1,39 @@
+# Private local planning file
+SPEC.md
+
+# Virtual environments
+.venv/
+venv/
+
+# Environment
+.env
+.env.*
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Generated certificate storage
+storage/
+
+# Caches and build output
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+build/
+dist/
+*.egg-info/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
