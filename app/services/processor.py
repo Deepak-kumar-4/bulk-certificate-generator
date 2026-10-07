@@ -127,3 +127,21 @@ def process_job(job_id: str) -> None:
         except Exception as exc:
             logger.exception("process_job crashed for job %s", job_id)
             _abort(session, job_id, exc)
+
+
+def unfinished_job_ids() -> list[str]:
+    """Jobs that were PENDING or PROCESSING when the server last stopped, oldest first."""
+    with SessionLocal() as session:
+        return list(
+            session.scalars(
+                select(Job.id)
+                .where(Job.status.in_([JobStatus.PENDING, JobStatus.PROCESSING]))
+                .order_by(Job.created_at)
+            )
+        )
+
+
+def process_jobs(job_ids: list[str]) -> None:
+    """Process several jobs one after another (used for startup recovery)."""
+    for job_id in job_ids:
+        process_job(job_id)

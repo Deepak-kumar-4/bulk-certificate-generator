@@ -1,0 +1,11 @@
+{
+  "event_name": "Python Bootcamp 2026",
+  "issuer_name": "Deetag Academy",
+  "issue_date": "2026-10-01",
+  "recipients": [
+    { "name": "Asha Rao", "email": "asha@example.com" },
+    { "name": "José Núñez", "email": "jose@example.com" },
+    { "name": "", "email": "not-an-email" },
+    { "name": "Asha R.", "email": "ASHA@example.com" }
+  ]
+}

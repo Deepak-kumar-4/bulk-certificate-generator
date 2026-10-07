@@ -38,7 +38,8 @@ def error_body(code: str, message: str, details: list | None = None) -> dict:
 
 def _format_validation_error(err: dict) -> dict:
     loc = [str(part) for part in err.get("loc", ()) if part != "body"]
-    return {"field": ".".join(loc), "message": err.get("msg", "invalid value")}
+    message = err.get("msg", "invalid value").removeprefix("Value error, ")
+    return {"field": ".".join(loc), "message": message}
 
 
 async def app_error_handler(_: Request, exc: AppError) -> JSONResponse:
@@ -57,7 +58,9 @@ async def validation_error_handler(_: Request, exc: RequestValidationError) -> J
 
 
 async def http_error_handler(_: Request, exc: StarletteHTTPException) -> JSONResponse:
-    code = {404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED"}.get(exc.status_code, "HTTP_ERROR")
+    code = {400: "BAD_REQUEST", 404: "NOT_FOUND", 405: "METHOD_NOT_ALLOWED"}.get(
+        exc.status_code, "HTTP_ERROR"
+    )
     return JSONResponse(
         status_code=exc.status_code,
         content=error_body(code, str(exc.detail)),

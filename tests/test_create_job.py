@@ -126,3 +126,18 @@ def test_all_rows_invalid_still_creates_a_failed_job(client):
         "name is required; email is not valid",
         "email is required",
     ]
+
+
+def test_validation_error_message_is_readable(client):
+    response = client.post("/api/jobs/", json=job_body(recipients=[]))
+
+    assert response.json()["error"]["message"] == "recipients: must contain at least one recipient"
+
+
+def test_malformed_json_uses_error_shape(client):
+    response = client.post(
+        "/api/jobs/", content=b"{not json", headers={"Content-Type": "application/json"}
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_ERROR"

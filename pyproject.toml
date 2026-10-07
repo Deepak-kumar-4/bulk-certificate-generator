@@ -38,6 +38,10 @@ select = ["E", "F", "I", "B", "UP", "SIM"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+filterwarnings = [
+    # Starlette's TestClient suggests the httpx2 fork; plain httpx still works fine.
+    "ignore:Using `httpx` with `starlette.testclient` is deprecated",
+]
 
 [tool.setuptools.package-data]
 app = ["assets/fonts/*"]
