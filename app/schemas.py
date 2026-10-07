@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
@@ -52,3 +52,36 @@ class JobCreated(BaseModel):
     accepted_count: int
     invalid_count: int
     status_url: str
+
+
+class JobStatusOut(BaseModel):
+    id: str
+    event_name: str
+    status: str
+    total_count: int
+    succeeded_count: int
+    failed_count: int
+    pending_count: int
+    progress_percent: float
+    created_at: datetime
+    started_at: datetime | None
+    finished_at: datetime | None
+
+
+class CertificateOut(BaseModel):
+    id: str
+    row_index: int
+    recipient_name: str | None
+    recipient_email: str | None
+    certificate_number: str | None
+    status: str
+    error: str | None
+    download_url: str | None
+
+
+class CertificatePage(BaseModel):
+    job_id: str
+    total: int
+    limit: int
+    offset: int
+    items: list[CertificateOut]

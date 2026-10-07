@@ -1,5 +1,7 @@
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.errors import NotFoundError
 from app.models import Certificate, CertificateStatus, Job, JobStatus, utcnow
 from app.schemas import JobCreate
 from app.services.validation import validate_recipients
@@ -41,3 +43,40 @@ def create_job(session: Session, payload: JobCreate) -> Job:
     )
     session.commit()
     return job
+
+
+def get_job(session: Session, job_id: str) -> Job:
+    job = session.get(Job, job_id)
+    if job is None:
+        raise NotFoundError(f"No job with id {job_id}", code="JOB_NOT_FOUND")
+    return job
+
+
+def progress_percent(job: Job) -> float:
+    if job.total_count == 0:
+        return 100.0
+    done = job.succeeded_count + job.failed_count
+    return round(done * 100 / job.total_count, 1)
+
+
+def list_certificates(
+    session: Session,
+    job_id: str,
+    status: CertificateStatus | None,
+    limit: int,
+    offset: int,
+) -> tuple[int, list[Certificate]]:
+    """One page of a job's certificates in submission order, plus the total matching count."""
+    conditions = [Certificate.job_id == job_id]
+    if status is not None:
+        conditions.append(Certificate.status == status)
+
+    total = session.scalar(select(func.count()).select_from(Certificate).where(*conditions))
+    items = session.scalars(
+        select(Certificate)
+        .where(*conditions)
+        .order_by(Certificate.row_index)
+        .limit(limit)
+        .offset(offset)
+    ).all()
+    return total, list(items)
