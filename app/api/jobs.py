@@ -1,7 +1,9 @@
 from typing import Annotated
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Query, Response, status
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from starlette.background import BackgroundTask
 
 from app.db import get_session
 from app.models import Certificate, CertificateStatus, Job, JobStatus
@@ -104,4 +106,20 @@ def list_job_certificates(
         limit=limit,
         offset=offset,
         items=[certificate_out(cert) for cert in items],
+    )
+
+
+@router.get(
+    "/{job_id}/download",
+    response_class=FileResponse,
+    responses={200: {"content": {"application/zip": {}}, "description": "Zip of all PDFs"}},
+)
+def download_job(job_id: str, session: SessionDep) -> FileResponse:
+    """Download every generated certificate of a finished job as one zip."""
+    path, filename = job_service.job_zip(session, job_id)
+    return FileResponse(
+        path,
+        media_type="application/zip",
+        filename=filename,
+        background=BackgroundTask(path.unlink, missing_ok=True),
     )

@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app import db
-from app.api import jobs
+from app.api import certificates, jobs
 from app.config import get_settings
 from app.errors import register_error_handlers
 
@@ -27,6 +27,7 @@ def create_app() -> FastAPI:
     )
     register_error_handlers(app)
     app.include_router(jobs.router)
+    app.include_router(certificates.router)
 
     @app.get("/health", tags=["health"])
     def health() -> dict[str, str]:
